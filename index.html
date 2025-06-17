@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Screener Dashboard - Fixed</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .debug-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .debug-panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .debug-info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .error-panel {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            margin: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .success-panel {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            margin: 15px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .data-display {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .data-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .form-section {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .webhook-test {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Resume Screening Dashboard - Debug Mode</h1>
+            <p>Troubleshooting Data Loading Issues</p>
+        </div>
+        
+        <div class="debug-panel">
+            <h3>System Status</h3>
+            <div class="debug-info">
+                <strong>Current User:</strong> <span id="currentUser">Detecting...</span><br>
+                <strong>Data Source:</strong> <span id="dataSource">Not connected</span><br>
+                <strong>Last Update:</strong> <span id="lastUpdate">Never</span><br>
+                <strong>Records Found:</strong> <span id="recordCount">0</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h3>Manual Testing Controls</h3>
+            <button class="btn" onclick="testUserDetection()">Test User Detection</button>
+            <button class="btn" onclick="testWebhookConnection()">Test Webhook Connection</button>
+            <button class="btn" onclick="loadSampleData()">Load Sample Data</button>
+            <button class="btn" onclick="clearAllData()">Clear Data</button>
+            <button class="btn" onclick="downloadDebugLog()">Download Debug Log</button>
+        </div>
+        
+        <div class="form-section">
+            <h3>Manual Configuration</h3>
+            <div class="form-group">
+                <label for="manualUsername">Override Username:</label>
+                <input type="text" id="manualUsername" placeholder="Enter username manually">
+            </div>
+            <div class="form-group">
+                <label for="manualWebhook">Override Webhook URL:</label>
+                <input type="url" id="manualWebhook" placeholder="https://hook.us1.make.com/your-webhook-url">
+            </div>
+            <button class="btn" onclick="applyManualConfig()">Apply Configuration</button>
+        </div>
+        
+        <div id="messagesPanel"></div>
+        
+        <div class="data-display">
+            <h3>Data Output</h3>
+            <div id="dataContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Initializing system...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging system
+        let debugLog = [];
+        let currentConfig = {
+            username: '',
+            webhookUrl: 'https://hook.us1.make.com/k86fkvob6cp7hnjmlry7cl5ogp3qsrsu',
+            lastAttempt: null,
+            errors: []
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString();
+            const logEntry = { timestamp, message, type };
+            debugLog.push(logEntry);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            updateDebugDisplay();
+        }
+
+        function updateDebugDisplay() {
+            document.getElementById('currentUser').textContent = currentConfig.username || 'Not detected';
+            document.getElementById('dataSource').textContent = currentConfig.webhookUrl ? 'Configured' : 'Not configured';
+            document.getElementById('lastUpdate').textContent = currentConfig.lastAttempt || 'Never';
+        }
+
+        function showMessage(message, type = 'info') {
+            const panel = document.getElementById('messagesPanel');
+            const className = type === 'error' ? 'error-panel' : 'success-panel';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = className;
+            messageDiv.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${message}`;
+            panel.appendChild(messageDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        // Test user detection methods
+        function testUserDetection() {
+            log('Testing user detection methods...');
+            
+            let detectedUser = '';
+            const methods = [];
+            
+            // Method 1: Check URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlUser = urlParams.get('user') || urlParams.get('username');
+            if (urlUser) {
+                methods.push(`URL Parameter: ${urlUser}`);
+                detectedUser = urlUser;
+            }
+            
+            // Method 2: Check localStorage
+            const storedUser = localStorage.getItem('dashboard_username_verified') || 
+                             localStorage.getItem('username') || 
+                             localStorage.getItem('promptedUsername');
+            if (storedUser) {
+                methods.push(`LocalStorage: ${storedUser}`);
+                if (!detectedUser) detectedUser = storedUser;
+            }
+            
+            // Method 3: Check page elements
+            const usernameSelectors = [
+                'span.theme-portal-username[data-portal-user-name]',
+                '.theme-portal-username',
+                '[data-portal-user-name]',
+                '.username',
+                '.user-name'
+            ];
+            
+            for (const selector of usernameSelectors) {
+                const element = document.querySelector(selector);
+                if (element && element.textContent) {
+                    const text = element.textContent.trim();
+                    const match = text.match(/(?:Hi|Hello),?\s*([a-zA-Z0-9_-]+)/i);
+                    if (match && match[1]) {
+                        methods.push(`Page Element (${selector}): ${match[1]}`);
+                        if (!detectedUser) detectedUser = match[1];
+                    }
+                }
+            }
+            
+            // Method 4: Prompt user
+            if (!detectedUser) {
+                const promptedUser = prompt('Please enter your username for testing:');
+                if (promptedUser && promptedUser.trim()) {
+                    detectedUser = promptedUser.trim();
+                    methods.push(`User Prompt: ${detectedUser}`);
+                    localStorage.setItem('promptedUsername', detectedUser);
+                }
+            }
+            
+            if (detectedUser) {
+                currentConfig.username = detectedUser;
+                localStorage.setItem('dashboard_username_verified', detectedUser);
+                log(`User detected: ${detectedUser}`, 'success');
+                showMessage(`User successfully detected: ${detectedUser}`, 'success');
+                
+                // Show all detection methods found
+                if (methods.length > 0) {
+                    showMessage(`Detection methods found:<br>${methods.join('<br>')}`, 'info');
+                }
+            } else {
+                log('No user detection methods successful', 'error');
+                showMessage('Failed to detect username. Please use manual override.', 'error');
+            }
+            
+            updateDebugDisplay();
+        }
+
+        // Test webhook connection
+        async function testWebhookConnection() {
+            if (!currentConfig.username) {
+                showMessage('Please detect/set username first', 'error');
+                return;
+            }
+            
+            log('Testing webhook connection...');
+            const webhookUrl = document.getElementById('manualWebhook').value || currentConfig.webhookUrl;
+            
+            try {
+                const testPayload = {
+                    username: currentConfig.username,
+                    action: 'getData',
+                    test: true,
+                    timestamp: new Date().toISOString()
+                };
+                
+                log(`Sending test request to: ${webhookUrl}`);
+                log(`Payload: ${JSON.stringify(testPayload, null, 2)}`);
+                
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+                
+                currentConfig.lastAttempt = new Date().toISOString();
+                
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                log(`Response data: ${JSON.stringify(data, null, 2)}`);
+                
+                // Try to parse the data
+                const parsedData = parseWebhookResponse(data);
+                log(`Parsed ${parsedData.length} records`);
+                
+                showMessage(`Webhook test successful! Found ${parsedData.length} records.`, 'success');
+                displayData(parsedData);
+                
+            } catch (error) {
+                log(`Webhook test failed: ${error.message}`, 'error');
+                showMessage(`Webhook test failed: ${error.message}`, 'error');
+                currentConfig.errors.push(error.message);
+            }
+            
+            updateDebugDisplay();
+        }
+
+        // Parse webhook response with multiple format support
+        function parseWebhookResponse(data) {
+            log('Parsing webhook response...');
+            
+            let records = [];
+            
+            try {
+                // Handle different response formats
+                if (Array.isArray(data)) {
+                    log('Data is direct array');
+                    if (data.length > 0 && data[0].body && Array.isArray(data[0].body)) {
+                        // Format: [{body: [...], status: 200}]
+                        records = data[0].body.map(item => item.data || item);
+                        log('Parsed as bundle format');
+                    } else if (data[0] && data[0].data) {
+                        // Format: [{data: {...}}, {data: {...}}]
+                        records = data.map(item => item.data);
+                        log('Parsed as data wrapper format');
+                    } else {
+                        // Direct array format
+                        records = data;
+                        log('Parsed as direct array');
+                    }
+                } else if (data.results) {
+                    log('Data has results property');
+                    if (typeof data.results === 'string') {
+                        // Parse concatenated JSON
+                        const jsonString = '[' + data.results + ']';
+                        const parsedArray = JSON.parse(jsonString);
+                        records = parsedArray.map(item => item.data || item);
+                        log('Parsed concatenated JSON string');
+                    } else if (Array.isArray(data.results)) {
+                        records = data.results.map(item => item.data || item);
+                        log('Parsed results array');
+                    }
+                } else if (data.records) {
+                    records = data.records.map(item => item.data || item);
+                    log('Parsed records property');
+                } else if (data.data) {
+                    if (Array.isArray(data.data)) {
+                        records = data.data.map(item => item.data || item);
+                        log('Parsed data array');
+                    } else {
+                        records = [data.data];
+                        log('Parsed single data object');
+                    }
+                } else {
+                    // Try to treat the whole response as a single record
+                    records = [data];
+                    log('Treating response as single record');
+                }
+                
+                // Convert records to array format if they're objects
+                records = records.map(record => {
+                    if (typeof record === 'object' && !Array.isArray(record)) {
+                        // Convert object to array based on column indices
+                        return [
+                            record["0"] || record.date || "",
+                            record["1"] || record.jobTitle || "",
+                            record["2"] || record.score || "",
+                            record["3"] || record.candidateName || "",
+                            record["4"] || record.phone || "",
+                            record["5"] || record.email || "",
+                            record["6"] || record.screeningQuestions || "",
+                            record["7"] || record.summary || "",
+                            record["8"] || record.recordOwner || "",
+                            record["9"] || record.resume || "",
+                            record["10"] || record.jobDescriptionSource || "",
+                            record["11"] || record.resumeSource || "",
+                            record["12"] || record.interviewLink || "",
+                            record["13"] || record.aiAgentInterview || "",
+                            record["14"] || record.emailWebhook || "",
+                            record["15"] || record.callWebhook || "",
+                            record["16"] || record.lastEmail || "",
+                            record["17"] || record.lastCall || "",
+                            record["18"] || record.skillsScore || "",
+                            record["19"] || record.experienceScore || "",
+                            record["20"] || record.careerScore || "",
+                            record["21"] || record.educationScore || "",
+                            record["22"] || record.resumeScore || ""
+                        ];
+                    }
+                    return record;
+                });
+                
+                log(`Successfully parsed ${records.length} records`);
+                return records;
+                
+            } catch (error) {
+                log(`Error parsing response: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        // Load sample data for testing
+        function loadSampleData() {
+            log('Loading sample data...');
+            
+            const sampleData = [
+                [
+                    "Date(2024, 0, 15, 10, 30, 0)", // Date
+                    "Software Engineer", // Job Title
+                    "85", // Score
+                    "John Smith", // Candidate Name
+                    "555-0123", // Phone
+                    "john.smith@email.com", // Email
+                    "5 years experience, JavaScript expert", // Screening Questions
+                    "Excellent match for senior role", // Summary
+                    currentConfig.username, // Record Owner
+                    "https://example.com/resume1.pdf", // Resume
+                    "https://jobboard.com/posting123", // Job Description Source
+                    "Upload", // Resume Source
+                    "https://calendly.com/interview", // Interview Link
+                    "Schedule Call", // AI Agent Interview
+                    "webhook1", // Email Webhook
+                    "webhook2", // Call Webhook
+                    "", // Last Email
+                    "", // Last Call
+                    "80", // Skills Score
+                    "90", // Experience Score
+                    "85", // Career Score
+                    "75", // Education Score
+                    "80" // Resume Score
+                ],
+                [
+                    "Date(2024, 0, 14, 14, 15, 0)",
+                    "Marketing Manager",
+                    "72",
+                    "Jane Doe",
+                    "555-0456",
+                    "jane.doe@email.com",
+                    "3 years experience, social media expert",
+                    "Good fit for mid-level position",
+                    currentConfig.username,
+                    "https://example.com/resume2.pdf",
+                    "https://company.com/careers",
+                    "Paste",
+                    "https://zoom.us/meeting",
+                    "Schedule Call",
+                    "webhook3",
+                    "webhook4",
+                    "",
+                    "",
+                    "70",
+                    "75",
+                    "70",
+                    "80",
+                    "65"
+                ]
+            ];
+            
+            displayData(sampleData);
+            document.getElementById('recordCount').textContent = sampleData.length;
+            showMessage(`Loaded ${sampleData.length} sample records`, 'success');
+            log(`Sample data loaded: ${sampleData.length} records`);
+        }
+
+        // Display data in table format
+        function displayData(data) {
+            const container = document.getElementById('dataContainer');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="loading">No data available</div>';
+                return;
+            }
+            
+            const headers = [
+                'Date', 'Job Title', 'Score', 'Candidate Name', 'Phone', 'Email',
+                'Screening Questions', 'Summary', 'Record Owner', 'Resume',
+                'Job Source', 'Resume Source', 'Interview Link', 'AI Interview',
+                'Email Webhook', 'Call Webhook', 'Last Email', 'Last Call',
+                'Skills Score', 'Experience Score', 'Career Score', 'Education Score', 'Resume Score'
+            ];
+            
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<thead><tr>';
+            headers.slice(0, 8).forEach(header => { // Show first 8 columns
+                html += `<th style="padding: 10px; border: 1px solid #ddd; background: #f8f9fa;">${header}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            data.forEach((row, index) => {
+                html += '<tr>';
+                for (let i = 0; i < 8; i++) { // Show first 8 columns
+                    const cell = row[i] || '';
+                    let displayCell = cell;
+                    
+                    // Format date
+                    if (i === 0 && typeof cell === 'string' && cell.includes('Date(')) {
+                        const match = cell.match(/Date\((\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)/);
+                        if (match) {
+                            const [, y, m, d, h, min, s] = match.map(Number);
+                            const date = new Date(y, m, d, h, min, s);
+                            displayCell = date.toLocaleString();
+                        }
+                    }
+                    
+                    // Format score
+                    if (i === 2) {
+                        const score = parseInt(cell) || 0;
+                        const color = score >= 80 ? '#28a745' : score >= 60 ? '#ffc107' : '#dc3545';
+                        displayCell = `<span style="background: ${color}; color: white; padding: 4px 8px; border-radius: 12px;">${score}</span>`;
+                    }
+                    
+                    html += `<td style="padding: 10px; border: 1px solid #ddd;">${displayCell}</td>`;
+                }
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            html += `<div style="margin-top: 15px; color: #666; font-size: 14px;">Showing ${data.length} records (first 8 columns)</div>`;
+            
+            container.innerHTML = html;
+            document.getElementById('recordCount').textContent = data.length;
+        }
+
+        // Apply manual configuration
+        function applyManualConfig() {
+            const username = document.getElementById('manualUsername').value.trim();
+            const webhook = document.getElementById('manualWebhook').value.trim();
+            
+            if (username) {
+                currentConfig.username = username;
+                localStorage.setItem('dashboard_username_verified', username);
+                log(`Username manually set to: ${username}`);
+            }
+            
+            if (webhook) {
+                currentConfig.webhookUrl = webhook;
+                log(`Webhook URL manually set to: ${webhook}`);
+            }
+            
+            updateDebugDisplay();
+            showMessage('Manual configuration applied', 'success');
+        }
+
+        // Clear all data and reset
+        function clearAllData() {
+            debugLog = [];
+            currentConfig.errors = [];
+            localStorage.removeItem('dashboard_username_verified');
+            localStorage.removeItem('username');
+            localStorage.removeItem('promptedUsername');
+            
+            document.getElementById('dataContainer').innerHTML = '<div class="loading">Data cleared</div>';
+            document.getElementById('recordCount').textContent = '0';
+            document.getElementById('messagesPanel').innerHTML = '';
+            
+            currentConfig.username = '';
+            updateDebugDisplay();
+            
+            log('All data cleared');
+            showMessage('All data and configuration cleared', 'success');
+        }
+
+        // Download debug log
+        function downloadDebugLog() {
+            const logContent = debugLog.map(entry => 
+                `[${entry.timestamp}] ${entry.type.toUpperCase()}: ${entry.message}`
+            ).join('\n');
+            
+            const configContent = `
+CONFIGURATION:
+Username: ${currentConfig.username}
+Webhook URL: ${currentConfig.webhookUrl}
+Last Attempt: ${currentConfig.lastAttempt}
+Errors: ${currentConfig.errors.join(', ')}
+
+DEBUG LOG:
+${logContent}
+            `;
+            
+            const blob = new Blob([configContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resume-dashboard-debug-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showMessage('Debug log downloaded', 'success');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Dashboard initialized');
+            updateDebugDisplay();
+            
+            // Try automatic user detection
+            testUserDetection();
+            
+            // If user was detected, try to load data
+            if (currentConfig.username) {
+                setTimeout(() => {
+                    testWebhookConnection();
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
